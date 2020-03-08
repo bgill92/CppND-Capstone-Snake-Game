@@ -5,13 +5,16 @@
 Game::Game(std::size_t grid_width, std::size_t grid_height)
     : snake(grid_width, grid_height),
       engine(dev()),
-      random_w(0, static_cast<int>(grid_width)),
-      random_h(0, static_cast<int>(grid_height)) {
+      random_w(0, static_cast<int>(grid_width - 1)),
+      random_h(0, static_cast<int>(grid_height - 1)) {
   PlaceFood();
 }
 
-void Game::Run(Controller const &controller, Renderer &renderer,
+// void Game::Run(Controller const &controller, Renderer &renderer,
+//                std::size_t target_frame_duration) {
+void Game::Run(Controller const &controller, Renderer *renderer,
                std::size_t target_frame_duration) {
+  std::cout << "In Game::Run\n";
   Uint32 title_timestamp = SDL_GetTicks();
   Uint32 frame_start;
   Uint32 frame_end;
@@ -22,10 +25,15 @@ void Game::Run(Controller const &controller, Renderer &renderer,
   while (running) {
     frame_start = SDL_GetTicks();
 
+    std::cout << "Before the handle input\n";
     // Input, Update, Render - the main game loop.
     controller.HandleInput(running, snake);
     Update();
-    renderer.Render(snake, food);
+    std::cout << "Before the render\n";
+    // renderer.Render(snake, food);
+    renderer->Render(snake, food);
+
+    std::cout << "After the render\n";
 
     frame_end = SDL_GetTicks();
 
@@ -36,7 +44,8 @@ void Game::Run(Controller const &controller, Renderer &renderer,
 
     // After every second, update the window title.
     if (frame_end - title_timestamp >= 1000) {
-      renderer.UpdateWindowTitle(score, frame_count);
+      // renderer.UpdateWindowTitle(score, frame_count);
+      renderer->UpdateWindowTitle(score, frame_count);
       frame_count = 0;
       title_timestamp = frame_end;
     }
@@ -60,6 +69,9 @@ void Game::PlaceFood() {
     if (!snake.SnakeCell(x, y)) {
       food.x = x;
       food.y = y;
+
+      // std::cout << "Food placed at x,y: " << food.x << "," << food.y << "\n";
+
       return;
     }
   }
@@ -82,6 +94,3 @@ void Game::Update() {
     snake.speed += 0.02;
   }
 }
-
-int Game::GetScore() const { return score; }
-int Game::GetSize() const { return snake.size; }
