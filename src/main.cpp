@@ -1,10 +1,9 @@
 #include <iostream>
 #include <string>
 #include "controller.h"
-#include "game.h"
 #include "renderer.h"
 #include "gameManager.h"
-
+#include "game.h"
 
 int main() {
 

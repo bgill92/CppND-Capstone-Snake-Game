@@ -2,8 +2,9 @@
 #include <iostream>
 #include "SDL.h"
 
-Game::Game(std::size_t grid_width, std::size_t grid_height)
+Game::Game(std::size_t grid_width, std::size_t grid_height, GameInstance* gameInst)
     : snake(grid_width, grid_height),
+      _currGameInst(gameInst),
       engine(dev()),
       random_w(0, static_cast<int>(grid_width - 1)),
       random_h(0, static_cast<int>(grid_height - 1)) {
@@ -22,18 +23,40 @@ void Game::Run(Controller const &controller, Renderer *renderer,
   int frame_count = 0;
   bool running = true;
 
+  int counter = 0;
+
   while (running) {
     frame_start = SDL_GetTicks();
 
-    std::cout << "Before the handle input\n";
     // Input, Update, Render - the main game loop.
     controller.HandleInput(running, snake);
     Update();
-    std::cout << "Before the render\n";
-    // renderer.Render(snake, food);
-    renderer->Render(snake, food);
+    // renderer->Render(snake, food);
 
-    std::cout << "After the render\n";
+    // counter++;
+
+    // if (counter > 60) {      
+
+    {
+
+      counter = 0;
+
+      std::unique_lock<std::mutex> ul(*(getGameInst()->getGameManagerHandle()->getMtxHandle()));          
+
+      auto temp_snake = snake;
+
+      auto temp_food = food;
+
+      getGameInst()->getGameManagerHandle()->getMovedSnakesQ(getGameInst()->getId())->push_back(std::move(temp_snake));      
+
+      getGameInst()->getGameManagerHandle()->getFoodQ(getGameInst()->getId())->push_back(std::move(temp_food));
+
+      ul.unlock();
+      getGameInst()->getGameManagerHandle()->getCondVarHandle()->notify_one();
+    //   std::cout << getGameInst()->getGameManagerHandle()->getTempSnakies()->size() << "\n";
+
+    }
+    // std::cout << "After the render\n";
 
     frame_end = SDL_GetTicks();
 
@@ -56,8 +79,20 @@ void Game::Run(Controller const &controller, Renderer *renderer,
     if (frame_duration < target_frame_duration) {
       SDL_Delay(target_frame_duration - frame_duration);
     }
+    if (!running){
+      std::lock_guard lck(*(getGameInst()->getGameManagerHandle()->getMtxHandle()));
+      std::cout << "Setting flag to false\n";
+      getGameInst()->getGameManagerHandle()->setGameRunningFlag(false);
+      getGameInst()->getGameManagerHandle()->getCondVarHandle()->notify_one();
+    }    
   }
+  // std::cout << "Out of running loop\n";
 }
+
+void Game::sendToGameMngr(){
+  std::lock_guard<std::mutex> lck(_gmMtx);
+
+};
 
 void Game::PlaceFood() {
   int x, y;
