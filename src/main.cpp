@@ -43,10 +43,11 @@ int main() {
 
   if (mode == 1) { // Single player mode
 
-    // Renderer renderer(kScreenWidth, kScreenHeight, kGridWidth, kGridHeight);
-    // Controller controller;
-    // Game game(kGridWidth, kGridHeight);
-    // game.Run(controller, renderer, kMsPerFrame);    
+    std::string temp;
+
+    std::cout << "Controls are:\n W = up \n S = down \n D = right \n A = left \n Enter any button to continue...";    
+    getline(std::cin, temp);
+    getline(std::cin, temp);
 
     // Make a game manager
     auto gameMan = std::make_unique<GameManager>();
@@ -58,13 +59,17 @@ int main() {
     std::cout << "Game has terminated successfully!\n";
     gameMan->ending();
 
-    // std::cout << "Game has terminated successfully!\n";
-    // std::cout << "Score: " << game.GetScore() << "\n";
-    // std::cout << "Size: " << game.GetSize() << "\n";
-
   } else if (mode == 2) { // Vs. mode
 
     // std::cout << "VS. mode not implemented yet, sorry!" << "\n";
+
+    std::string temp;
+
+    std::cout << "Controls for player 1 are:\n W = up \n S = down \n D = right \n A = left \n";
+    std::cout << "Controls for player 2 are:\n up arrow = up \n down arrow = down \n right arrow = right \n left arrow = left \n";
+    std::cout << "Enter any button to continue...";    
+    getline(std::cin, temp);
+    getline(std::cin, temp);
 
     auto gameMan = std::make_unique<GameManager>(2);
     // std::cout << "1\n";
