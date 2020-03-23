@@ -50,15 +50,13 @@ int main() {
 
     // Make a game manager
     auto gameMan = std::make_unique<GameManager>();
-    std::cout << "1\n";
+    // std::cout << "1\n";
 
     // Run the game
     gameMan.get()->Run();
 
     std::cout << "Game has terminated successfully!\n";
-    // std::cout << "Score: " << game.GetScore() << "\n";
-    // std::cout << "Size: " << game.GetSize() << "\n";
-
+    gameMan->ending();
 
     // std::cout << "Game has terminated successfully!\n";
     // std::cout << "Score: " << game.GetScore() << "\n";
@@ -66,7 +64,16 @@ int main() {
 
   } else if (mode == 2) { // Vs. mode
 
-    std::cout << "VS. mode not implemented yet, sorry!" << "\n";
+    // std::cout << "VS. mode not implemented yet, sorry!" << "\n";
+
+    auto gameMan = std::make_unique<GameManager>(2);
+    // std::cout << "1\n";
+
+    // Run the game
+    gameMan.get()->Run();
+
+    std::cout << "Game has terminated successfully!\n";    
+    gameMan->ending();
 
   } else if (mode == 0) { // Exit
 

@@ -1,6 +1,10 @@
 #include "game.h"
 #include <iostream>
 #include "SDL.h"
+#include "gameManager.h"
+
+
+class Gameinstance;
 
 Game::Game(std::size_t grid_width, std::size_t grid_height, GameInstance* gameInst)
     : snake(grid_width, grid_height),
@@ -11,11 +15,67 @@ Game::Game(std::size_t grid_width, std::size_t grid_height, GameInstance* gameIn
   PlaceFood();
 }
 
+void Game::ChangeDirection(Snake &snake, Snake::Direction input,
+                                 Snake::Direction opposite) const {
+  if (snake.direction != opposite || snake.size == 1) snake.direction = input;
+  return;
+}
+
+
+void Game::applyChangeDirection(Snake &snake, SDL_Keycode inputDir) {
+  switch (inputDir) {
+    case SDLK_UP:
+      ChangeDirection(snake, Snake::Direction::kUp,
+                      Snake::Direction::kDown);
+      // std::cout<< "up\n";
+      break;
+    case SDLK_DOWN:
+      ChangeDirection(snake, Snake::Direction::kDown,
+                      Snake::Direction::kUp);
+      // std::cout<< "down\n";
+      break;
+    case SDLK_LEFT:
+      ChangeDirection(snake, Snake::Direction::kLeft,
+                      Snake::Direction::kRight);
+      // std::cout<< "left\n";
+      break;
+    case SDLK_RIGHT:
+      ChangeDirection(snake, Snake::Direction::kRight,
+                      Snake::Direction::kLeft);
+      // std::cout<< "right\n";
+      break;
+    case SDLK_w:
+      ChangeDirection(snake, Snake::Direction::kUp,
+                      Snake::Direction::kDown);
+      // std::cout<< "up\n";
+      break;
+    case SDLK_s:
+      ChangeDirection(snake, Snake::Direction::kDown,
+                      Snake::Direction::kUp);
+      // std::cout<< "down\n";
+      break;
+    case SDLK_a:
+      ChangeDirection(snake, Snake::Direction::kLeft,
+                      Snake::Direction::kRight);
+      // std::cout<< "left\n";
+      break;
+    case SDLK_d:
+      ChangeDirection(snake, Snake::Direction::kRight,
+                      Snake::Direction::kLeft);
+      // std::cout<< "right\n";       
+      break;
+  }
+}
+
+
 // void Game::Run(Controller const &controller, Renderer &renderer,
 //                std::size_t target_frame_duration) {
-void Game::Run(Controller const &controller, Renderer *renderer,
-               std::size_t target_frame_duration) {
-  std::cout << "In Game::Run\n";
+// void Game::Run(Controller &controller, Renderer *renderer,
+//                std::size_t target_frame_duration) {
+// void Game::Run(Renderer *renderer,
+//                std::size_t target_frame_duration) { 
+void Game::Run(std::size_t target_frame_duration) { 
+  // std::cout << "In Game::Run\n";
   Uint32 title_timestamp = SDL_GetTicks();
   Uint32 frame_start;
   Uint32 frame_end;
@@ -25,23 +85,55 @@ void Game::Run(Controller const &controller, Renderer *renderer,
 
   int counter = 0;
 
+  // std::cout << "Got here " << getGameInst()->getId() << "\n";
+
   while (running) {
+
+    // Acquire a lock on the current game mutex
+    std::unique_lock<std::mutex> cl(_gmMtx);
+
+    // Wait until we get a key press
+    _condVar.wait(cl,[this](){return this->_pressedKey.size() > 0;});
+
+    // Start the frame
     frame_start = SDL_GetTicks();
 
+    auto currKey = std::move(_pressedKey.back());
+    _pressedKey.clear();
+
+    cl.unlock();
+
+    // Apply the key press
+    this->applyChangeDirection(snake, currKey);
+
+    // Get control first and then start the frame    
+
     // Input, Update, Render - the main game loop.
-    controller.HandleInput(running, snake);
+
+    // controller.HandleInput(running, snake, getGameInst()->getId());    
+
+    // Get control mutex
+    //
+
+    // std::cout << "Got here after the controller " << getGameInst()->getId() << "\n";
+
     Update();
+
     // renderer->Render(snake, food);
-
     // counter++;
-
     // if (counter > 60) {      
+
+    // std::cout << "Got here after the Update " << getGameInst()->getId() << "\n";
 
     {
 
       counter = 0;
 
+      // std::cout << "Before Snake Mutex " << getGameInst()->getId() << "\n";      
+
       std::unique_lock<std::mutex> ul(*(getGameInst()->getGameManagerHandle()->getMtxHandle()));          
+
+      // std::cout << "After Snake Mutex " << getGameInst()->getId() << "\n";      
 
       auto temp_snake = snake;
 
@@ -56,7 +148,7 @@ void Game::Run(Controller const &controller, Renderer *renderer,
     //   std::cout << getGameInst()->getGameManagerHandle()->getTempSnakies()->size() << "\n";
 
     }
-    // std::cout << "After the render\n";
+    // std::cout << "After moving snake " << getGameInst()->getId() << "\n";
 
     frame_end = SDL_GetTicks();
 
@@ -68,7 +160,7 @@ void Game::Run(Controller const &controller, Renderer *renderer,
     // After every second, update the window title.
     if (frame_end - title_timestamp >= 1000) {
       // renderer.UpdateWindowTitle(score, frame_count);
-      renderer->UpdateWindowTitle(score, frame_count);
+      // renderer->UpdateWindowTitle(score, frame_count);
       frame_count = 0;
       title_timestamp = frame_end;
     }
@@ -79,9 +171,14 @@ void Game::Run(Controller const &controller, Renderer *renderer,
     if (frame_duration < target_frame_duration) {
       SDL_Delay(target_frame_duration - frame_duration);
     }
+
+    if (currKey == SDLK_EJECT) {
+      running = false;
+    }
+
     if (!running){
       std::lock_guard lck(*(getGameInst()->getGameManagerHandle()->getMtxHandle()));
-      std::cout << "Setting flag to false\n";
+      // std::cout << "Setting flag to false\n";
       getGameInst()->getGameManagerHandle()->setGameRunningFlag(false);
       getGameInst()->getGameManagerHandle()->getCondVarHandle()->notify_one();
     }    
